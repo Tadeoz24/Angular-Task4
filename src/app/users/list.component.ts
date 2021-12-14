@@ -18,6 +18,8 @@ export class ListComponent implements OnInit {
 
   deleteUser(id: string) {
     const user = this.users.find((x) => x.id === id);
+    confirm(`delete User  ${user.email} `);
+
     user.isDeleting = true;
     this.accountService
       .delete(id)

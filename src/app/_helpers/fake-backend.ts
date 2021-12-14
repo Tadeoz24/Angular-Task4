@@ -1,4 +1,5 @@
-﻿import { Injectable } from '@angular/core';
+﻿import { SpinnerService } from './../spinner/spinner.service';
+import { Injectable } from '@angular/core';
 import {
   HttpRequest,
   HttpResponse,
@@ -6,9 +7,10 @@ import {
   HttpEvent,
   HttpInterceptor,
   HTTP_INTERCEPTORS,
+  HttpErrorResponse,
 } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { delay, materialize, dematerialize } from 'rxjs/operators';
+import { delay, materialize, dematerialize, tap } from 'rxjs/operators';
 
 const usersKey = 'Task 4';
 let users = JSON.parse(localStorage.getItem(usersKey)) || [];
@@ -64,24 +66,32 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       user.id = users.length ? Math.max(...users.map((x) => x.id)) + 1 : 1;
       users.push(user);
       localStorage.setItem(usersKey, JSON.stringify(users));
-      return ok();
+      return ok().pipe(materialize(), delay(1500), dematerialize());
     }
 
     function getUsers() {
       if (!isLoggedIn()) return unauthorized();
-      return ok(users.map((x) => basicDetails(x)));
+      return ok(users.map((x) => basicDetails(x))).pipe(
+        materialize(),
+        delay(1000),
+        dematerialize()
+      );
     }
 
     function getUserById() {
       if (!isLoggedIn()) return unauthorized();
 
       const user = users.find((x) => x.id === idFromUrl());
-      return ok(basicDetails(user));
+      return ok(basicDetails(user)).pipe(
+        materialize(),
+        delay(1500),
+        dematerialize()
+      );
     }
 
     function updateUser() {
       if (!isLoggedIn()) return unauthorized();
-
+      // this.SpinnerService.requestStarted();
       let params = body;
       let user = users.find((x) => x.id === idFromUrl());
       if (!params.password) {
@@ -91,25 +101,24 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       Object.assign(user, params);
       localStorage.setItem(usersKey, JSON.stringify(users));
 
-      return ok();
+      return ok().pipe(materialize(), delay(1500), dematerialize());
     }
 
     function deleteUser() {
       if (!isLoggedIn()) return unauthorized();
-
       users = users.filter((x) => x.id !== idFromUrl());
       localStorage.setItem(usersKey, JSON.stringify(users));
-      return ok();
+      return ok().pipe(materialize(), delay(1500), dematerialize());
     }
 
     function ok(body?) {
-      return of(new HttpResponse({ status: 200, body })).pipe(delay(500));
+      return of(new HttpResponse({ status: 200, body })).pipe(delay(1500));
     }
 
     function error(message) {
       return throwError({ error: { message } }).pipe(
         materialize(),
-        delay(500),
+        delay(1500),
         dematerialize()
       );
     }
@@ -118,7 +127,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
       return throwError({
         status: 401,
         error: { message: 'Unauthorized' },
-      }).pipe(materialize(), delay(500), dematerialize());
+      });
     }
 
     function basicDetails(user) {
